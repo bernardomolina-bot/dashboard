@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard de Facturación Completo (Fetch API)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --text-main: #2c3e50;
+      --text-muted: #7f8c8d;
+      --primary: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 24px;
+    }
+
+    .dashboard-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+    }
+
+    /* Cards de Filtros */
+    .filters-card {
+      background: var(--card-bg);
+      padding: 18px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .filter-group input, .filter-group select {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+
+    .filter-group input:focus, .filter-group select:focus {
+      border-color: var(--primary);
+    }
+
+    /* Grilla de KPIs */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .kpi-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    .kpi-card.total .kpi-value { color: var(--primary); }
+    .kpi-card.paid .kpi-value { color: var(--success); }
+    .kpi-card.pending .kpi-value { color: var(--warning); }
+
+    /* Visualización y Gráficos */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chart-card h3 {
+      font-size: 1.1rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 280px;
+      width: 100%;
+    }
+
+    /* Tabla de Datos */
+    .table-card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+
+    .table-card h3 {
+      margin-bottom: 16px;
+      font-size: 1.1rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+
+    th {
+      background-color: #f8fafc;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    tr:hover {
+      background-color: #f8fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .badge.pagado {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+
+    .badge.pendiente {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 20px;
+      color: var(--text-muted);
+    }
+
+    .error-msg {
+      color: var(--danger);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-container">
+    <header>
+      <h1>Consulta y Métricas de Facturación</h1>
+    </header>
+
+    <!-- Panel de Filtros -->
+    <section class="filters-card">
+      <div class="filter-group">
+        <label for="searchInput">Buscar (N° Factura / ID Cliente)</label>
+        <input type="text" id="searchInput" placeholder="Ej: 270 o 4493...">
+      </div>
+      <div class="filter-group">
+        <label for="statusFilter">Estado de Factura</label>
+        <select id="statusFilter">
+          <option value="todos">Todos los Estados</option>
+          <option value="Pagado">Pagado</option>
+          <option value="Pendiente">Pendiente</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="sortOrder">Ordenar Por Valor</label>
+        <select id="sortOrder">
+          <option value="none">Sin orden específico</option>
+          <option value="desc">Mayor a Menor</option>
+          <option value="asc">Menor a Mayor</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- Indicadores Clave (KPIs) -->
+    <section class="kpi-grid">
+      <div class="kpi-card total">
+        <span class="kpi-title">Total Facturado</span>
+        <span class="kpi-value" id="kpiTotal">$0</span>
+      </div>
+      <div class="kpi-card paid">
+        <span class="kpi-title">Total Pagado</span>
+        <span class="kpi-value" id="kpiPaid">$0</span>
+      </div>
+      <div class="kpi-card pending">
+        <span class="kpi-title">Total Pendiente</span>
+        <span class="kpi-value" id="kpiPending">$0</span>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-title">Cantidad de Facturas</span>
+        <span class="kpi-value" id="kpiCount">0</span>
+      </div>
+    </section>
+
+    <!-- Gráficos -->
+    <section class="charts-grid">
+      <div class="chart-card">
+        <h3>Distribución por Estado</h3>
+        <div class="chart-container">
+          <canvas id="statusChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Monto por N° de Factura</h3>
+        <div class="chart-container">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabla Detallada -->
+    <section class="table-card">
+      <h3>Listado Detallado</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>ID Cliente</th>
+            <th>N° Factura</th>
+            <th>Valor Factura</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="5" class="empty-state">Cargando datos desde datosfacturacion.json...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    // Variable global para almacenar el dataset procesado
+    let invoices = [];
+
+    // ==========================================
+    // 1. CARGA ASÍNCRONA CON API FETCH
+    // ==========================================
+    async function cargarDatosFacturacion() {
+      try {
+        const response = await fetch('datosfacturacion.json');
+        
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+
+        const rawData = await response.json();
+
+        // Procesar y transformar los datos
+        invoices = rawData.map(item => ({
+          ...item,
+          numericValue: limpiarValorMoneda(item.valor_factura)
+        }));
+
+        // Actualizar la interfaz una vez cargados los datos
+        updateDashboard();
+
+      } catch (error) {
+        console.error('Error al consultar datosfacturacion.json:', error);
+        
+        const tableBody = document.getElementById('tableBody');
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty-state error-msg">
+              ❌ No se pudieron cargar los datos de <strong>datosfacturacion.json</strong>.<br>
+              Asegúrate de ejecutar la página en un servidor local (Live Server / HTTP local).
+            </td>
+          </tr>`;
+      }
+    }
+
+    // ==========================================
+    // 2. FUNCIONES HELPERS Y PARSERS
+    // ==========================================
+    function limpiarValorMoneda(valorTexto) {
+      if (typeof valorTexto === 'number') return valorTexto;
+      return Number(valorTexto.replace(/[^0-9]/g, ''));
+    }
+
+    function formatearMoneda(monto) {
+      return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        maximumFractionDigits: 0
+      }).format(monto);
+    }
+
+    // ==========================================
+    // 3. FUNCIONES DEDICADAS PARA CÁLCULO DE TOTALES
+    // ==========================================
+    function calcularTotalFacturado(listaFacturas) {
+      return listaFacturas.reduce((acumulado, factura) => acumulado + factura.numericValue, 0);
+    }
+
+    function calcularTotalPagado(listaFacturas) {
+      return listaFacturas
+        .filter(factura => factura.estado === 'Pagado')
+        .reduce((acumulado, factura) => acumulado + factura.numericValue, 0);
+    }
+
+    function calcularTotalPendiente(listaFacturas) {
+      return listaFacturas
+        .filter(factura => factura.estado === 'Pendiente')
+        .reduce((acumulado, factura) => acumulado + factura.numericValue, 0);
+    }
+
+    function calcularCantidadFacturas(listaFacturas) {
+      return listaFacturas.length;
+    }
+
+    function actualizarTotalesDashboard(listaFacturas) {
+      document.getElementById('kpiTotal').innerText = formatearMoneda(calcularTotalFacturado(listaFacturas));
+      document.getElementById('kpiPaid').innerText = formatearMoneda(calcularTotalPagado(listaFacturas));
+      document.getElementById('kpiPending').innerText = formatearMoneda(calcularTotalPendiente(listaFacturas));
+      document.getElementById('kpiCount').innerText = calcularCantidadFacturas(listaFacturas);
+    }
+
+    // ==========================================
+    // 4. FUNCIONES DE RENDERIZADO (TABLA Y GRÁFICOS)
+    // ==========================================
+    let statusChartInstance = null;
+    let barChartInstance = null;
+
+    function renderTable(data) {
+      const tableBody = document.getElementById('tableBody');
+      tableBody.innerHTML = '';
+
+      if (data.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="empty-state">No se encontraron facturas con los criterios seleccionados.</td></tr>`;
+        return;
+      }
+
+      data.forEach(item => {
+        const row = document.createElement('tr');
+        const badgeClass = item.estado.toLowerCase() === 'pagado' ? 'pagado' : 'pendiente';
+        
+        row.innerHTML = `
+          <td>${item.fecha}</td>
+          <td>${item.id_cliente}</td>
+          <td><strong>#${item.nro_de_factura}</strong></td>
+          <td>${formatearMoneda(item.numericValue)}</td>
+          <td><span class="badge ${badgeClass}">${item.estado}</span></td>
+        `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    function renderCharts(data) {
+      const ctxStatus = document.getElementById('statusChart').getContext('2d');
+      const ctxBar = document.getElementById('barChart').getContext('2d');
+
+      const countPagado = data.filter(d => d.estado === 'Pagado').length;
+      const countPendiente = data.filter(d => d.estado === 'Pendiente').length;
+
+      if (statusChartInstance) statusChartInstance.destroy();
+      if (barChartInstance) barChartInstance.destroy();
+
+      // Gráfico de Dona
+      statusChartInstance = new Chart(ctxStatus, {
+        type: 'doughnut',
+        data: {
+          labels: ['Pagado', 'Pendiente'],
+          datasets: [{
+            data: [countPagado, countPendiente],
+            backgroundColor: ['#10b981', '#f59e0b']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      // Gráfico de Barras
+      barChartInstance = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: data.map(d => `Factura #${d.nro_de_factura}`),
+          datasets: [{
+            label: 'Valor ($)',
+            data: data.map(d => d.numericValue),
+            backgroundColor: '#3b82f6',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: (value) => '$' + (value / 1000000).toFixed(1) + 'M'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ==========================================
+    // 5. FLUJO PRINCIPAL Y EVENTOS
+    // ==========================================
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const sortOrder = document.getElementById('sortOrder');
+
+    function updateDashboard() {
+      const query = searchInput.value.toLowerCase().trim();
+      const status = statusFilter.value;
+      const order = sortOrder.value;
+
+      // Aplicar Filtros
+      let filteredData = invoices.filter(item => {
+        const matchesQuery = item.nro_de_factura.toString().includes(query) || 
+                             item.id_cliente.toString().includes(query);
+        const matchesStatus = status === 'todos' || item.estado === status;
+        return matchesQuery && matchesStatus;
+      });
+
+      // Aplicar Ordenamiento
+      if (order === 'asc') {
+        filteredData.sort((a, b) => a.numericValue - b.numericValue);
+      } else if (order === 'desc') {
+        filteredData.sort((a, b) => b.numericValue - a.numericValue);
+      }
+
+      // Re-calcula e inyecta KPIs, Tabla y Gráficos
+      actualizarTotalesDashboard(filteredData);
+      renderTable(filteredData);
+      renderCharts(filteredData);
+    }
+
+    // Escuchadores de Filtros
+    searchInput.addEventListener('input', updateDashboard);
+    statusFilter.addEventListener('change', updateDashboard);
+    sortOrder.addEventListener('change', updateDashboard);
+
+    // Carga inicial mediante Fetch API
+    document.addEventListener('DOMContentLoaded', cargarDatosFacturacion);
+  </script>
+</body>
+</html>

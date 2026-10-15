@@ -1,0 +1,58 @@
+[
+    {
+        "fecha": "16/01/2026",
+        "id_cliente": 4493,
+        "nro_de_factura": 270,
+        "valor_factura": "$4.415.382",
+        "estado": "Pendiente"
+    },
+    {
+        "fecha": "27/04/2025",
+        "id_cliente": 3861,
+        "nro_de_factura": 367,
+        "valor_factura": "$945.517",
+        "estado": "Pendiente"
+    },
+    {
+        "fecha": "16/04/2025",
+        "id_cliente": 4139,
+        "nro_de_factura": 593,
+        "valor_factura": "$7.847.148",
+        "estado": "Pagado"
+    },
+    {
+        "fecha": "7/02/2025",
+        "id_cliente": 8269,
+        "nro_de_factura": 547,
+        "valor_factura": "$3.432.222",
+        "estado": "Pagado"
+    },
+    {
+        "fecha": "06/14/2025",
+        "id_cliente": 4130,
+        "nro_de_factura": 592,
+        "valor_factura": "$17.847.148",
+        "estado": "Pagado"
+    },
+    {
+        "fecha": "7/10/2025",
+        "id_cliente": 5269,
+        "nro_de_factura": 348,
+        "valor_factura": "$1.432.222",
+        "estado": "Pendiente"
+    },
+    {
+        "fecha": "16/10/2025",
+        "id_cliente": 4130,
+        "nro_de_factura": 591,
+        "valor_factura": "$7.847.148",
+        "estado": "Pagado"
+    },
+    {
+        "fecha": "7/02/2025",
+        "id_cliente": 3260,
+        "nro_de_factura": 548,
+        "valor_factura": "$3.432.222",
+        "estado": "Pendiente"
+    }
+]
